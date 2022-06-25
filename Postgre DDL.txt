@@ -1,0 +1,379 @@
+CREATE TABLE teacher
+(teacher_id serial,
+first_name varchar,
+last_name varchar,
+birthday date,
+phone varchar,
+title varchar)
+
+
+ALTER TABLE teacher
+ADD COLUMN middle_name varchar
+
+ALTER TABLE teacher
+DROP COLUMN middle_name
+
+ALTER TABLE teacher
+RENAME birthday TO birth_date
+
+ALTER TABLE teacher
+ALTER COLUMN phone SET DATA TYPE varchar(32)
+
+
+CREATE TABLE exam(
+	exam_id serial,
+	exam_name varchar(250), 
+	exam_date date)
+
+
+INSERT INTO exam(exam_name, exam_date)
+VALUES
+('exam 1', '2018-01-10'),
+('exam 2', '2018-02-10'),
+('exam 3', '2018-03-10');
+
+SELECT * FROM EXAM
+
+TRUNCATE TABLE EXAM RESTART IDENTITY
+
+
+-- PRIMARY KEY GENERATION
+DROP TABLE chair;
+
+CREATE TABLE chair
+(chair_id serial PRIMARY KEY,
+	chair_name varchar,
+ dean varchar
+);
+
+insert into chair
+VALUES(1, 'name', 'dean');
+
+SELECT * from chair;
+
+DROP TABLE CHAIR
+
+
+CREATE TABLE chair
+(chair_id serial UNIQUE NOT NULL,
+	chair_name varchar,
+ dean varchar
+);
+
+SELECT constraint_name
+FROM information_schema.key_column_usage
+WHERE table_name = 'chair'
+	AND table_schema = 'public'
+	AND column_name = 'chair_id'
+
+ALTER TABLE chair
+DROp CONSTRAINT chair_pkey
+
+ALTER TABLE chair
+ADD PRIMARY KEY (chair_id)
+
+
+--- КАК СОЗДАТЬ ВНЕШНИЙ КЛЮЧ
+DROP TABLE bookauthor;
+DROP TABLE publisher
+
+CREATE TABLE publisher
+(publisher_id int,
+publisher_name varchar(128) NOT NULL,
+adress text,
+
+CONSTRAINT PK_publisher_publishe_rid PRIMARY KEY(publisher_id) 
+);
+
+CREATE TABLE book
+(
+book_id int,
+title text NOT NULL,
+isbn varchar(32) NOT NULL,
+publisher_id int,
+
+CONSTRAINT PB_book_book_id PRIMARY KEY(book_id)
+)
+-- БЕЗ FOREIGN KEY МОЖЕМ СОСЛАТЬСЯ НА ИЗДАТЕЛЯ С НОМЕРОМ 10 КОТОРОГО НЕТ
+
+
+TRUNCATE TABLE book
+
+ALTER TABLE BOOK 
+ADD CONSTRAINT FK_books_publisher 
+FOREIGN KEY (publisher_id) REFERENCES publisher(publisher_id)
+
+-- CHECK
+
+DROP TABLE IF EXISTS book;
+
+CREATE TABLE book
+(book_id int,
+title text NOT NULL,
+isbn varchar (32) NOT NULL,
+publisher_id int,
+CONSTRAINT PK_book_book_id PRIMARY KEY (book_id))
+
+
+ALTER TABLE BOOK
+ADD COLUMN price decimal CONSTRAINT CHK_book_price 
+CHECK (price >= 0)
+
+INSERT INTO book
+VALUES
+(1, 'title', 'isbn', 1, 1.5)
+
+SELECT * FROM book
+
+-- DEFAULT - ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ
+
+CREATE TABLE customer
+(customer_id serial,
+full_name text,
+status char DEFAULT 'r',
+ 
+CONSTRAINT PK_customer_customer_id PRIMARY KEY (customer_id),
+CONSTRAINT CHK_customer_status CHECK (status = 'r' OR status = 'p'))
+-- r - regular customer
+
+
+-- Последовательности в SQL
+-- serial - основан на последовательности
+-- Postgre поддерживает sequances 
+
+CREATE SEQUENCE seq1;
+
+SELECT nextval('seq1')
+-- по умолчанию генерирует единицу
+
+SELECT currval('seq1') -- текущее значение
+
+SELECT lastval() -- значение посл. последовт.
+
+SELECT setval('seq1', 16, true); -- вернет 16
+-- true -позволяет отменить обновление nextval
+SELECT currval('seq1'); -- вернет 16
+SELECT nextval('seq1'); -- вернет 17
+
+
+CREATE SEQUENCE IF NOT EXISTS seq3 INCREMENT 16;
+SELECT nextval('seq2');
+
+CREATE SEQUENCE IF NOT EXISTS seq4
+INCREMENT 16
+MINVALUE 0
+MAXVALUE 128
+START WITH 0;
+
+SELECT nextval('seq4')
+-- будет возвращать значение 0 16 32...128
+
+-- как переименовать
+ALTER SEQUENCE seq4 RENAME to seq5;
+ALTER SEQUENCE seq5 RESTART WITH 16
+SELECT nextval('seq5')
+
+DROP SEQUENCE seq5
+---- 
+DROP TABLE IF EXISTS book
+
+CREATE TABLE book
+(book_id int NOT NULL,
+title text NOT NULL,
+isbn varchar NOT NULL,
+publisher_id int NOT NULL,
+
+CONSTRAINT PB_book_book_id PRIMARY KEY(book_id))
+
+SELECT * FROM book
+-- сделаем sequence чтобы пронумеровать значения в таблице
+CREATE SEQUENCE IF NOT EXISTS book_book_id_seq
+START WITH 1 OWNED BY book.book_id
+
+INSERT INTO book(title, isbn, publisher_id)
+VALUES('title', 'isbn', 1)
+-- даст ошибку
+-- нужно добавить констрейнт по дефолтному значению
+
+ALTER TABLE book
+ALTER COLUMN book_id SET DEFAULT nextval('book_book_id_seq')
+
+-- так работает тип serial в postgre
+
+-- проблема типа serial - могу через insert вставить ключ 3 и будет ошибка т.к. последовательность даст 3
+
+-- более продвинутый способ генерации полей
+-- GENERATED ALWAYS AS IDENTITY
+-- ЗАПРЕТИМ ПОЛЬЗОВАТЕЛЮ ВСТАВИТЬ
+-- НО МОЖНО ОБОЙТИ ЭТО С ПОМОЩЬЮ OVERRIDING SYSTEM VALUE
+-- ПРЕДУПРЕЖДЕНИЕ ВООБЩЕМ ДАЕМ
+-- ALWAYS - ПОЗВОЛЯЕТ ЗАПРЕТИТЬ ЯВНУЮ ВСТАВКУ
+-- BY DEFAULT - ПОЗВОЛЯЕТ МЕНЯТЬ ЗНАЧЕНИЯ
+
+-- МОЖНО ГЕНЕРАЦИЮ КЛЮЧЕЙ СДЕЛАТЬ БОЛЕЕ ИНТЕРЕСНОЙ
+-- 
+
+DROP TABLE IF EXISTS book;
+
+CREATE TABLE book
+(book_id int GENERATED ALWAYS AS IDENTITY (START WITH 10 INCREMENT BY 2) NOT NULL,
+title text NOT NULL,
+isbn varchar NOT NULL,
+publisher_id int NOT NULL,
+
+CONSTRAINT PB_book_book_id PRIMARY KEY(book_id));
+
+
+INSERT INTO book(title, isbn, publisher_id)
+VALUES('title', 'isbn', 1)
+
+
+INSERT INTO book(title, isbn, publisher_id)
+VALUES('title2', 'isbn', 2)
+
+SELECT * FROM book
+
+-- с колонкой identity проще работать через alter table - не надо исп. имя sequence
+-- рекомендуется не использовать serial в нов. версиях
+
+
+-- INSERT ВСТАВКА ДАННЫХ
+
+INSERT INTO author
+VALUES(10, 'John Silver', 4.5);
+
+SELECT * FROM author
+
+INSERT INTO author(author_id, full_name)
+VALUES
+('12', 'Name 1'),
+('13', 'Name 2')
+('14', 'Name 3')
+
+ -- бэкап селекта в отд. таблицу
+SELECT * 
+INTO best_authors
+FROM author
+where rating >= 4.5;
+	  
+SELECT * FROM best_authors
+
+-- бэкап в имеющуюся таблицу
+
+INSERT INTO best_authors
+SELECT * FROM 
+author
+WHERE rating < 4.5
+
+-- UPDATE DELETE RETURNING
+-- хотим переименовать
+UPDATE author
+SET full_name = 'Alias', rating = 5
+WHERE author_id = 1;
+
+SELECT * FROM author
+
+-- DELETE FROM
+
+DELETE FROM author
+WHERE rating < 4.5
+
+DELETE FROM author -- удаляет все строчки
+
+TRUNCATE TABLE author; -- работает быстрее, 
+-- не оставляет логи о удаленных строчках
+
+
+-- RETURNING 
+-- ПОЗВОЛЯЕТ В РЕЗ. КОМАНДЫ ВОЗВРАЩАЕТ ДАННЫЕ ПО 
+-- МОДИФИЦИРОВАННОЙ СТРОКЕ
+
+CREATE TABLE public.book
+(book_id serial,
+title text NOT NULL,
+isbn character varying(32)NULL,
+publisher_id int NOT NULL,
+
+CONSTRAINT PB_book_book_id PRIMARY KEY(book_id));
+
+INSERT INTO book(title, isbn, publisher_id)
+VALUES('title', 'isbn', 3)
+RETURNING book_id -- сразу увидим что вставлено. можно звездочку
+
+
+-- можно исп. при апдейте
+UPDATE author 
+SET fullname = 'Walter', rating  5
+
+-- ДЗ 2 
+DROP TABLE exam;
+CREATE TABLE exam
+(exam_id serial UNIQUE NOT NULL,
+exam_name varchar(256),
+exam_date date)
+
+ALTER TABLE exam
+DROP CONSTRAINT exam_exam_id_key;
+
+ALTER TABLE exam
+ADD PRIMARY KEY(exam_id)
+
+
+-- person passport +foreign key
+DROP TABLE passport;
+DROP TABLE person
+CREATE TABLE person
+(
+person_id integer NOT NULL,
+	first_name varchar (64) NOT NULL,
+	last_name varchar (64) NOT NULL,
+	
+	CONSTRAINT pk_person_person_id PRIMARY KEY(person_id)
+)
+
+CREATE TABLE passport
+(
+passport_id integer NOT NULL,
+	serial_number int NOT NULL,
+	registration text  NOT NULL,
+	person_id int NOT NULL,
+	
+	CONSTRAINT pk_passport_passport_id PRIMARY KEY(passport_id),
+	CONSTRAINT fk_passport_person FOREIGN KEY(passport_id) REFERENCES person(person_id)
+)
+
+-- add column weight with constraint
+
+ALTER TABLE book
+ADD COLUMN weight decimal CONSTRAINT chk_book_weight CHECK (WEIGHT > 0 and WEIGHT < 100)
+
+
+INSERT INTO book
+VALUES(128, 'title', 'isbn', 129)
+-- ()_; * > <
+
+DROP TABLE student;
+CREATE TABLE student
+(student_id serial,
+full_name varchar,
+grade int DEFAULT 1)
+
+INSERT into student
+VALUES(1, 'vasia');
+
+
+SELECT  * FROM STUDENT
+
+ALTER TABLE student
+ALTER COLUMN grade DROP DEFAULT
+
+
+INSERT into student
+VALUES(1, 'vasia'); -- БУДЕТ ВОЗВРАЩАТЬ NULL, ПРИ НОТ НАЛЛ - ОШИБКА
+
+
+
+
+
+
+
